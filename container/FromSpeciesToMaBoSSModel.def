@@ -1,0 +1,16 @@
+Bootstrap: docker
+
+From: condaforge/mambaforge:4.10.3-10
+
+%environment
+    export PATH=/opt/conda/envs/pypath_env/bin/:$PATH
+
+%files
+    resources/pypath_env.yml /opt/
+    resources/download_database.py /opt/
+    resources/pipeline.py /opt/
+    resources/pypath_functions.py /opt/
+
+%post
+    /opt/conda/bin/mamba env create -f /opt/pypath_env.yml
+    /opt/conda/envs/pypath_env/bin/python /opt/download_database.py /opt/cache /opt/network.pickle
