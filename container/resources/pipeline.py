@@ -1,16 +1,31 @@
-import sys
-import pandas as pd
-import matplotlib.pyplot as plt
-#importing legacy, which is the 'old' version of pypath, the only one (for now), with the graph object implemented
-from pypath.legacy import main as legacy
-
-import pypath_functions as pf
+import sys, os
 import maboss
 import pandas as pd
+import shutil
 
+DEFAULT_WORK_DIR = "/tmp"
 
-def main(list_genes_file, bnd_file, cfg_file):
+def main(list_genes_file, bnd_file, cfg_file, workdir=DEFAULT_WORK_DIR):
+    
+    os.chdir(workdir)
+    
+    if os.path.exists(os.path.join(workdir, "cache")):
+        shutil.rmtree(os.path.join(workdir, "cache"))
+        
+    shutil.copytree(
+        "/opt/cache", os.path.join(workdir, "cache")
+    )
+    
+    from pypath.share import settings
+
+    settings.setup(basedir=workdir) 
+    settings.setup(cachedir=os.path.join("cache"))
+    settings.setup(log_verbosity=0)
+    
+    from pypath.legacy import main as legacy
     pw_legacy = legacy.PyPath()
+    
+    import pypath_functions as pf
 
     # source = ["signor"]
     pickle_file = "/opt/network.pickle"
@@ -40,14 +55,15 @@ def main(list_genes_file, bnd_file, cfg_file):
     subg2 = graph.induced_subgraph([pw_legacy.vs.find(name = connected_dict[e]) for e in connected_dict.keys()])
 
 
-    pf.write_bnet(subg2, connected_dict, name="/tmp/model.bnet")
+    pf.write_bnet(subg2, connected_dict, name=os.path.join(workdir, "model.bnet"))
 
-    model = maboss.loadBNet("/tmp/model.bnet")
+    model = maboss.loadBNet(os.path.join(workdir, "model.bnet"))
     with (open(bnd_file, "w") as bnd_file, open(cfg_file, "w") as cfg_file):
         model.print_bnd(bnd_file)
         model.print_cfg(cfg_file)
         
-    
+    shutil.rmtree(os.path.join(workdir, "cache"))
+    shutil.rmtree(os.path.join(workdir, "pypath_log"))
     
 if __name__ == '__main__':
     sys.exit(main(*sys.argv[1:]))  # next section explains the use of sys.exit

@@ -1,16 +1,18 @@
-#starting importing some useful stuff
 import os, sys
-
-#importing legacy, which is the 'old' version of pypath, the only one (for now), with the graph object implemented
-from pypath.legacy import main as legacy
-from pypath.share import settings
 
 def main(cache_path, pickle_path):
     
-    #setting the cache directory
+    os.chdir("/opt")    
     os.makedirs(cache_path)
-    settings.setup(cachedir=cache_path) # ==> actual cache folder to use with legacy.main
+    
+    from pypath.share import settings
+    
+    settings.setup(cachedir=(cache_path)) # ==> actual cache folder to use with legacy.main
+    # settings.setup(progressbars = True)
 
+    #importing legacy, which is the 'old' version of pypath, the only one (for now), with the graph object implemented
+    from pypath.legacy import main as legacy
+    
     #initialization of the 'old' PyPath object
     pw_legacy = legacy.PyPath()
 
@@ -19,7 +21,8 @@ def main(cache_path, pickle_path):
 
     for database in legacy.data_formats.omnipath.keys():
         
-        if database in ["hprd", "hprd_p", "cellinker"]:
+        # if database in ["hprd", "hprd_p", "cellinker"]:
+        if database not in ["signor"]:
             continue
         try:
             print(database, " : ", legacy.data_formats.omnipath[database])
