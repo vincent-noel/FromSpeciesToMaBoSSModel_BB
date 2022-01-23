@@ -1,12 +1,6 @@
-from pypath.share import settings
-from pypath.legacy import main as legacy
 import omnipath as op
-import pandas as pd
-import networkx as nx
-import matplotlib.pyplot as plt
 from pypath.utils import mapping
 import igraph
-from IPython.display import Image
 import itertools
 import os
 
@@ -49,15 +43,6 @@ def get_code_from_annotations(gene_list):
 
     return dict_gene_code
 
-def load_network_from_cache(pw_legacy, cache_folder, databases):
-    settings.setup(cachedir=cache_folder)
-    for database in legacy.data_formats.omnipath.keys():
-        if database in databases:
-            print(database)
-            lst = {database: legacy.data_formats.omnipath[database]}
-            pw_legacy.init_network(lst)
-    return pw_legacy.graph
-
 def load_network_from_pickle(pw_legacy, pickle):
     path_to_pickle = os.path.isfile(pickle)
     if path_to_pickle == False:
@@ -80,30 +65,6 @@ def get_consensus_edges(direction, gene_dict):
         if code==code2:
             a[0][1] = symbol
     return a
-
-def display_directed_edges_labels(graph, edgelist, gene_dict):
-    for i,couple in enumerate([e['dirs'] for e in edgelist]):
-        if couple.dirs['undirected'] == False:
-            print(str(i)+": ", graph.vs.find(couple.nodes[0])['label'],graph.vs.find(couple.nodes[1])['label'])
-        else:
-            print(str(i)+": "+"Undirected interaction")
-            print(str(i)+": ", graph.vs.find(couple.nodes[0])['label'],graph.vs.find(couple.nodes[1])['label'])
-        print(couple)
-        print(get_consensus_edges(couple, gene_dict))
-
-def plot_graph(graph, network_name): #this ufnction take as arguments a graph/subgraph (from pypath)
-    # and a string (ex: my_network.png)
-    plot = igraph.plot(graph, target = network_name,
-                edge_width = 0.3, edge_color = 'green',
-                vertex_color = 'lightgray', vertex_frame_width = 0,
-                vertex_size = 30.0, vertex_label_size = 10,
-                vertex_label_color = 'red',
-                # due to a bug in either igraph or IPython,
-                # vertex labels are not visible on inline plots:
-                inline = True, margin = 30, layout=graph.layout_auto())
-
-    Image(filename=network_name)
-    return plot
 
 #it is possible to visualize the dataframe containing all the informations about each edge:
 
@@ -184,16 +145,6 @@ def filter_by_node_degree(graph, degree, pw_legacy):
                 vertex_label_color='red', inline=True, margin=20)
     return graph_obj
 
-def print_graph(df):  # print a network starting from the pandas dataframe and NOT froma  graph/subgraph
-
-    G = nx.from_pandas_edgelist(df, source='source', target='target', edge_attr=True,
-                                create_using=nx.DiGraph())
-    pos = nx.circular_layout(G)
-    fig, ax = plt.subplots(figsize=(30, 30))
-    graph = nx.draw(G, pos, with_labels=True, edgecolors='red', node_color='lightgray', node_size=3000)
-
-    plt.show()
-
 #if I want to know which are the neighbors of a particular node in the subgraph that I just built:
 
 def search_neigh_interactions(gene, gene_dict, graph):
@@ -205,60 +156,6 @@ def search_neigh_interactions(gene, gene_dict, graph):
 
 #with this function, you can select two node of one of your graph, and check which are the shortest paths
 #that link the two node, and then plot them
-
-def plot_shortest_paths(node1,node2, graph):
-    if graph.vs.find(label=node1).index==None:
-        print(node1+" not found")
-        return
-    if graph.vs.find(label=node2).index==None:
-        print(node2+" not found")
-        return
-    dist = graph.shortest_paths(graph.vs.find(label=node1).index, graph.vs.find(label=node2).index, mode='all')
-    print("Distance: "+str(dist[0]))
-    print(dist)
-    paths = graph.get_all_shortest_paths(graph.vs.find(label=node1).index, graph.vs.find(label=node2).index, mode='all')
-    print(paths)
-    p = [item for sublist in paths for item in sublist]
-    p = set(p)
-    print('Number of nodes: {}'.format(len(p)))
-    connection_graph = graph.induced_subgraph(p)
-    plot = igraph.plot(connection_graph, node1+'_to_'+node2+'_dist_'+str(dist[0])+'.pdf',
-                       vertex_size=25, edge_width = 0.3, edge_color = 'purple',
-                        vertex_color = '#97BE73', vertex_frame_width = 0,
-                        vertex_label_size = 7,
-                        vertex_label_color = 'red', inline = True, margin = 20,
-                       layout=connection_graph.layout_auto())
-    return plot
-
-#since igraph and networkx do not allow (or at least I don't know how to) to show directed edges
-# I implemented this function that colors the an edge depending on the result of the "consensus_edge" function:
-#this function returns an average of the direction of the edge according to the associated sources
-
-#I still have to add a colorbar or something similar, anyway I will think about something as soon as I can
-
-def plot_with_colored_edges(graph): #need to add a legend
-    for edge in graph.es:
-        edge['consensus_direct'] = edge['dirs'].consensus_edges()[0][2]
-        edge['consensus_direction'] = edge['dirs'].consensus_edges()[0][3]
-    directed_edges = graph.es.select(consensus_direct = 'directed')
-    undirected_edges = graph.es.select(consensus_direct = 'undirected')
-    positive_directed_edges = graph.es.select(consensus_direction = 'positive')
-    negative_directed_edges = graph.es.select(consensus_direction = 'negative')
-    unknown_directed = graph.es.select(consensus_direction = 'unknown')
-    positive_directed_edges['color'] = 'blue'
-    negative_directed_edges['color'] = 'red'
-    unknown_directed['color'] = 'green'
-    plot = igraph.plot(graph, target = 'network_with_colored_edges.png',
-            edge_width = 0.5,
-            vertex_color = '#97BE73', vertex_frame_width = 0,
-            vertex_size = 25, vertex_label_size = 10,
-            vertex_label_color = 'red',
-            # due to a bug in either igraph or IPython,
-            # vertex labels are not visible on inline plots:
-            inline = True, margin = 20, layout=graph.layout_auto())
-
-    Image(filename='network_with_colored_edges.png')
-    return plot
 
 def write_bnet(graph, gene_dict, name="logic_formula.bnet"): # make this optional
     #database = ['SIGNOR', "Adhesome"]  # ==> insert name of the database

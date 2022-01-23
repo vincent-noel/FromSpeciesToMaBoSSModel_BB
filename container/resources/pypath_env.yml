@@ -8,8 +8,6 @@ dependencies:
   - pip
   - cairo
   - maboss
-  - matplotlib
-  - pandas
   - pycairo
   - pycurl
   - python-igraph
