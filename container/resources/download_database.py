@@ -21,8 +21,8 @@ def main(cache_path, pickle_path):
 
     for database in legacy.data_formats.omnipath.keys():
         
-        # if database in ["hprd", "hprd_p", "cellinker"]:
-        if database not in ["signor"]:
+        if database in ["hprd", "hprd_p", "cellinker"]:
+        # if database not in ["signor"]:
             continue
         try:
             print(database, " : ", legacy.data_formats.omnipath[database])
